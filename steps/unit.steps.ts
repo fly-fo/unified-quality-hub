@@ -1,58 +1,130 @@
 import { createBdd } from 'playwright-bdd';
 import { expect } from '@playwright/test';
+import * as allure from 'allure-js-commons';
 
 const { Given, When, Then } = createBdd();
 
 const FAILED_CASES = new Set([
-  4, 9, 13, 18, 22,
-  27, 31, 36, 40, 44,
-  49, 53, 58, 63, 71,
-  76, 82, 88, 94, 99
+  4, 9, 13, 18, 22, 27, 31,
+  36, 40, 44, 49, 53, 58,
+  71, 76, 79, 82, 88, 94, 99
 ]);
 
 type ServiceKey = 'transfers' | 'beneficiaries' | 'cards' | 'statements';
 
-let unitCaseNumber = 0;
-let unitService: ServiceKey = 'transfers';
-let unitExpected = '';
-let unitActual = '';
+let caseNumber = 0;
+let service: ServiceKey = 'transfers';
+let expectedValue = '';
+let actualValue = '';
+let errorMessage = '';
 
-function buildExpected(service: ServiceKey): string {
-  if (service === 'transfers') return 'TRANSFER_RULE_OK';
-  if (service === 'beneficiaries') return 'BENEFICIARY_RULE_OK';
-  if (service === 'cards') return 'CARD_RULE_OK';
+function pad(num: number): string {
+  return String(num).padStart(3, '0');
+}
+
+function getServiceLevel2(value: ServiceKey): string {
+  if (value === 'transfers') return 'Transfers';
+  if (value === 'beneficiaries') return 'Beneficiaries';
+  if (value === 'cards') return 'Card Management';
+  return 'Statements';
+}
+
+function getApplicationUnit(value: ServiceKey): string {
+  if (value === 'transfers') return 'UA-Payments-Orchestrator';
+  if (value === 'beneficiaries') return 'UA-Beneficiary-Service';
+  if (value === 'cards') return 'UA-Card-Control-Service';
+  return 'UA-Statement-Service';
+}
+
+function getFeature(value: ServiceKey): string {
+  if (value === 'transfers') return 'Payments';
+  if (value === 'beneficiaries') return 'Beneficiaries';
+  if (value === 'cards') return 'Cards';
+  return 'Statements';
+}
+
+function getStory(value: ServiceKey): string {
+  if (value === 'transfers') return 'Transfer Validation';
+  if (value === 'beneficiaries') return 'Beneficiary Validation';
+  if (value === 'cards') return 'Card Rules';
+  return 'Statement Rules';
+}
+
+function getSeverity(num: number): string {
+  if (FAILED_CASES.has(num)) return 'critical';
+  if (num % 10 === 0) return 'normal';
+  if (num % 3 === 0) return 'minor';
+  return 'trivial';
+}
+
+function getExpected(value: ServiceKey): string {
+  if (value === 'transfers') return 'TRANSFER_RULE_OK';
+  if (value === 'beneficiaries') return 'BENEFICIARY_RULE_OK';
+  if (value === 'cards') return 'CARD_RULE_OK';
   return 'STATEMENT_RULE_OK';
 }
 
-function buildFailedActual(service: ServiceKey): string {
-  if (service === 'transfers') return 'TRANSFER_LIMIT_CHECK_FAILED';
-  if (service === 'beneficiaries') return 'BENEFICIARY_VALIDATION_TIMEOUT';
-  if (service === 'cards') return 'CARD_STATUS_RULE_MISMATCH';
-  return 'STATEMENT_PERIOD_VALIDATION_FAILED';
+function getFailureMessage(num: number): string {
+  if ([4, 36, 71, 94].includes(num)) {
+    return 'AUTH_TOKEN_EXPIRED: token validation failed';
+  }
+  if ([9, 22, 49, 79].includes(num)) {
+    return 'PAYMENT_GATEWAY_502: upstream returned 502';
+  }
+  if ([13, 31, 58, 99].includes(num)) {
+    return 'ORDER_SCHEMA_MISMATCH: expected number but got string';
+  }
+  if ([18, 44, 82, 88].includes(num)) {
+    return 'UI_CART_BUTTON_HIDDEN: checkout button is not visible';
+  }
+  return 'PROFILE_SYNC_TIMEOUT: synchronization exceeded timeout';
+}
+
+async function applyMetadata() {
+  await allure.displayName(`Validate ${service} rule ${pad(caseNumber)}`);
+  await allure.epic('Retail Banking');
+  await allure.feature(getFeature(service));
+  await allure.story(getStory(service));
+  await allure.owner('Amir');
+  await allure.severity(getSeverity(caseNumber) as any);
+  await allure.tags('gitlab', 'playwright-bdd', 'unit');
+  await allure.label('layer', 'unit');
+  await allure.label('Business Unit', 'Retail Banking');
+  await allure.label('Service Level 1', 'Daily Banking');
+  await allure.label('Service Level 2', getServiceLevel2(service));
+  await allure.label('Application Unit', getApplicationUnit(service));
+  await allure.label('Release', process.env.RELEASE || '33.3.1');
 }
 
 Given(
   /a (transfers|beneficiaries|cards|statements) validation request for case "(.*)"/,
   async ({}, serviceKey: ServiceKey, caseNo: string) => {
-    unitService = serviceKey;
-    unitCaseNumber = parseInt(caseNo, 10);
-    unitExpected = buildExpected(serviceKey);
-    unitActual = unitExpected;
+    service = serviceKey;
+    caseNumber = parseInt(caseNo, 10);
+    expectedValue = getExpected(serviceKey);
+    actualValue = expectedValue;
+    errorMessage = '';
+    await applyMetadata();
   }
 );
 
 When(
   /the (transfers|beneficiaries|cards|statements) validation engine evaluates the request/,
   async ({}) => {
-    if (FAILED_CASES.has(unitCaseNumber)) {
-      unitActual = buildFailedActual(unitService);
-    }
+    await allure.step('Evaluate validation rule', async () => {
+      if (FAILED_CASES.has(caseNumber)) {
+        errorMessage = getFailureMessage(caseNumber);
+        actualValue = errorMessage;
+      }
+    });
   }
 );
 
 Then(
   /the (transfers|beneficiaries|cards|statements) rule result should match the expected outcome for case "(.*)"/,
   async ({}) => {
-    expect(unitActual).toBe(unitExpected);
+    await allure.step('Compare actual result with expected value', async () => {
+      expect(actualValue).toBe(expectedValue);
+    });
   }
 );
