@@ -33,7 +33,7 @@ function buildFailedActual(service: ServiceKey): string {
 
 Given(
   /a (transfers|beneficiaries|cards|statements) portal journey for case "(.*)" is prepared/,
-  async (serviceKey: ServiceKey, caseNo: string) => {
+  async ({}, serviceKey: ServiceKey, caseNo: string) => {
     e2eService = serviceKey;
     e2eCaseNumber = parseInt(caseNo, 10);
     e2eExpected = buildExpected(serviceKey);
@@ -43,7 +43,7 @@ Given(
 
 When(
   /the (transfers|beneficiaries|cards|statements) portal journey is executed/,
-  async () => {
+  async ({}) => {
     if (FAILED_CASES.has(e2eCaseNumber)) {
       e2eActual = buildFailedActual(e2eService);
     }
@@ -52,7 +52,7 @@ When(
 
 Then(
   /the (transfers|beneficiaries|cards|statements) portal result should match the expected outcome for case "(.*)"/,
-  async () => {
+  async ({}) => {
     expect(e2eActual).toBe(e2eExpected);
   }
 );

@@ -33,7 +33,7 @@ function buildFailedActual(service: ServiceKey): string {
 
 Given(
   /a (transfers|beneficiaries|cards|statements) validation request for case "(.*)"/,
-  async (serviceKey: ServiceKey, caseNo: string) => {
+  async ({}, serviceKey: ServiceKey, caseNo: string) => {
     unitService = serviceKey;
     unitCaseNumber = parseInt(caseNo, 10);
     unitExpected = buildExpected(serviceKey);
@@ -43,7 +43,7 @@ Given(
 
 When(
   /the (transfers|beneficiaries|cards|statements) validation engine evaluates the request/,
-  async () => {
+  async ({}) => {
     if (FAILED_CASES.has(unitCaseNumber)) {
       unitActual = buildFailedActual(unitService);
     }
@@ -52,7 +52,7 @@ When(
 
 Then(
   /the (transfers|beneficiaries|cards|statements) rule result should match the expected outcome for case "(.*)"/,
-  async () => {
+  async ({}) => {
     expect(unitActual).toBe(unitExpected);
   }
 );

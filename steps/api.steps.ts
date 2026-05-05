@@ -33,7 +33,7 @@ function buildFailedActual(service: ServiceKey): string {
 
 Given(
   /a (transfers|beneficiaries|cards|statements) API payload for case "(.*)"/,
-  async (serviceKey: ServiceKey, caseNo: string) => {
+  async ({}, serviceKey: ServiceKey, caseNo: string) => {
     apiService = serviceKey;
     apiCaseNumber = parseInt(caseNo, 10);
     apiExpected = buildExpected(serviceKey);
@@ -43,7 +43,7 @@ Given(
 
 When(
   /the (transfers|beneficiaries|cards|statements) API request is processed/,
-  async () => {
+  async ({}) => {
     if (FAILED_CASES.has(apiCaseNumber)) {
       apiActual = buildFailedActual(apiService);
     }
@@ -52,7 +52,7 @@ When(
 
 Then(
   /the (transfers|beneficiaries|cards|statements) API result should match the expected outcome for case "(.*)"/,
-  async () => {
+  async ({}) => {
     expect(apiActual).toBe(apiExpected);
   }
 );
