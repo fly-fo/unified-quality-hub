@@ -41,7 +41,7 @@ cache:
 test_all:
   stage: test
   script:
-    - npm ci
+    - npm install
     - curl -Lo allurectl https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64
     - chmod +x allurectl
     - |
