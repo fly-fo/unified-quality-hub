@@ -16,7 +16,6 @@ let caseNumber = 0;
 let service: ServiceKey = 'transfers';
 let expectedValue = '';
 let actualValue = '';
-let errorMessage = '';
 
 function pad(num: number): string {
   return String(num).padStart(3, '0');
@@ -53,8 +52,7 @@ function getStory(value: ServiceKey): string {
 function getSeverity(num: number): string {
   if (FAILED_CASES.has(num)) return 'critical';
   if (num % 10 === 0) return 'normal';
-  if (num % 3 === 0) return 'minor';
-  return 'trivial';
+  return 'minor';
 }
 
 function getExpected(value: ServiceKey): string {
@@ -103,7 +101,6 @@ Given(
     caseNumber = parseInt(caseNo, 10);
     expectedValue = getExpected(serviceKey);
     actualValue = expectedValue;
-    errorMessage = '';
     await applyMetadata();
   }
 );
@@ -113,8 +110,7 @@ When(
   async ({}) => {
     await allure.step('Evaluate validation rule', async () => {
       if (FAILED_CASES.has(caseNumber)) {
-        errorMessage = getFailureMessage(caseNumber);
-        actualValue = errorMessage;
+        actualValue = getFailureMessage(caseNumber);
       }
     });
   }
