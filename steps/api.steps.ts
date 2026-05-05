@@ -1,5 +1,4 @@
 import { createBdd } from 'playwright-bdd';
-import { expect } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 
 const { Given, When, Then } = createBdd();
@@ -50,8 +49,8 @@ function getStory(value: ServiceKey): string {
 }
 
 function getSeverity(num: number): string {
-  if (num === 9) return 'critical';
-  if (FAILED_CASES.has(num)) return 'normal';
+  if (num <= 20) return 'critical';
+  if (num <= 50) return 'normal';
   return 'minor';
 }
 
@@ -112,7 +111,9 @@ Then(
   /the (transfers|beneficiaries|cards|statements) API result should match the expected outcome for case "(.*)"/,
   async ({}) => {
     await allure.step('Validate API result', async () => {
-      expect(actualValue).toBe(expectedValue);
+      if (actualValue !== expectedValue) {
+        throw new Error(actualValue);
+      }
     });
   }
 );

@@ -1,5 +1,4 @@
 import { createBdd } from 'playwright-bdd';
-import { expect } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 
 const { Given, When, Then } = createBdd();
@@ -43,8 +42,9 @@ function getStory(value: ServiceKey): string {
   return 'Statement Journey';
 }
 
-function getSeverity(_: number): string {
-  if (FAILED_CASES.has(caseNumber)) return 'normal';
+function getSeverity(num: number): string {
+  if (num <= 20) return 'critical';
+  if (num <= 50) return 'normal';
   return 'minor';
 }
 
@@ -105,7 +105,9 @@ Then(
   /the (transfers|beneficiaries|cards|statements) portal result should match the expected outcome for case "(.*)"/,
   async ({}) => {
     await allure.step('Validate portal result', async () => {
-      expect(actualValue).toBe(expectedValue);
+      if (actualValue !== expectedValue) {
+        throw new Error(actualValue);
+      }
     });
   }
 );
