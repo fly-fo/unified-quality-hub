@@ -43,9 +43,8 @@ function getStory(value: ServiceKey): string {
   return 'Statement Journey';
 }
 
-function getSeverity(num: number): string {
-  if (FAILED_CASES.has(num)) return 'critical';
-  if (num % 10 === 0) return 'normal';
+function getSeverity(_: number): string {
+  if (FAILED_CASES.has(caseNumber)) return 'normal';
   return 'minor';
 }
 
@@ -57,19 +56,11 @@ function getExpected(value: ServiceKey): string {
 }
 
 function getFailureMessage(num: number): string {
-  if ([4, 36, 71, 94].includes(num)) {
-    return 'AUTH_TOKEN_EXPIRED: token validation failed';
-  }
-  if ([9, 22, 49, 79].includes(num)) {
-    return 'PAYMENT_GATEWAY_502: upstream returned 502';
-  }
-  if ([13, 31, 58, 99].includes(num)) {
-    return 'ORDER_SCHEMA_MISMATCH: expected number but got string';
-  }
-  if ([18, 44, 82, 88].includes(num)) {
-    return 'UI_CART_BUTTON_HIDDEN: checkout button is not visible';
-  }
-  return 'PROFILE_SYNC_TIMEOUT: synchronization exceeded timeout';
+  if ([4, 36, 71, 94].includes(num)) return 'AUTH_TOKEN_EXPIRED';
+  if ([9, 22, 49, 79].includes(num)) return 'PAYMENT_GATEWAY_502';
+  if ([13, 31, 58, 99].includes(num)) return 'ORDER_SCHEMA_MISMATCH';
+  if ([18, 44, 82, 88].includes(num)) return 'UI_CART_BUTTON_HIDDEN';
+  return 'PROFILE_SYNC_TIMEOUT';
 }
 
 async function applyMetadata() {
