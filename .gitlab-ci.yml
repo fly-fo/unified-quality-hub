@@ -1,0 +1,44 @@
+stages:
+  - test
+
+default:
+  image: mcr.microsoft.com/playwright:v1.54.1-noble
+
+variables:
+  ALLURE_ENDPOINT: "https://demo.testops.cloud"
+  ALLURE_PROJECT_ID: "4601"
+  ALLURE_RESULTS: "allure-results"
+  ALLURE_LAUNCH_NAME: "unified-quality-hub"
+  ALLURE_LAUNCH_TAGS: "gitlab, playwright-bdd"
+  RELEASE: "33.3.1"
+  BROWSER: "Chrome"
+  OS: "macOS"
+  TEST_SCOPE: "all"
+
+cache:
+  paths:
+    - node_modules/
+
+test_all:
+  stage: test
+  script:
+    - npm ci
+    - curl -Lo allurectl https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64
+    - chmod +x allurectl
+    - |
+      if [ "$TEST_SCOPE" = "unit" ]; then
+        ./allurectl watch -- npm run test:unit
+      elif [ "$TEST_SCOPE" = "api" ]; then
+        ./allurectl watch -- npm run test:api
+      elif [ "$TEST_SCOPE" = "e2e" ]; then
+        ./allurectl watch -- npm run test:e2e
+      else
+        ./allurectl watch -- npm run test
+      fi
+  artifacts:
+    when: always
+    paths:
+      - allure-results/
+      - playwright-report/
+      - test-results/
+    expire_in: 1 week
