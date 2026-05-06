@@ -9,6 +9,28 @@ const FAILED_CASES = new Set([
   71, 76, 79, 82, 88, 94, 99
 ]);
 
+/**
+ * Unit flaky demo cases.
+ *
+ * We make 5 Unit tests flaky:
+ * one case from each failure category.
+ *
+ * AUTH_TOKEN_EXPIRED       → 071
+ * PAYMENT_GATEWAY_502      → 049
+ * ORDER_SCHEMA_MISMATCH    → 058
+ * UI_CART_BUTTON_HIDDEN    → 082
+ * PROFILE_SYNC_TIMEOUT     → 053
+ *
+ * API:  5 flaky tests
+ * E2E:  5 flaky tests
+ * Unit: 5 flaky tests
+ *
+ * Total across the project: 15 flaky tests.
+ */
+const FLAKY_CASES = new Set([
+  71, 49, 58, 82, 53
+]);
+
 type ServiceKey = 'transfers' | 'beneficiaries' | 'cards' | 'statements';
 
 let caseNumber = 0;
@@ -69,6 +91,42 @@ function getFailureMessage(num: number): string {
   return 'PROFILE_SYNC_TIMEOUT';
 }
 
+function isFlakyModeEnabled(): boolean {
+  return process.env.DEMO_FLAKY_MODE !== 'off';
+}
+
+function getFlakyFailureRate(): number {
+  const value = process.env.DEMO_FLAKY_RATE;
+
+  if (!value) {
+    return 0.5;
+  }
+
+  const parsedValue = Number(value);
+
+  if (Number.isNaN(parsedValue)) {
+    return 0.5;
+  }
+
+  if (parsedValue < 0) {
+    return 0;
+  }
+
+  if (parsedValue > 1) {
+    return 1;
+  }
+
+  return parsedValue;
+}
+
+function shouldFailFlakyCase(): boolean {
+  if (!isFlakyModeEnabled()) {
+    return false;
+  }
+
+  return Math.random() < getFlakyFailureRate();
+}
+
 async function applyMetadata() {
   await allure.displayName(`Validate ${service} rule ${pad(caseNumber)}`);
   await allure.epic('Retail Banking');
@@ -83,6 +141,11 @@ async function applyMetadata() {
   await allure.label('Service Level 2', getServiceLevel2(service));
   await allure.label('Application Unit', getApplicationUnit(service));
   await allure.label('Release', process.env.RELEASE || '33.3.1');
+
+  if (FLAKY_CASES.has(caseNumber)) {
+    await allure.tag('flaky-demo');
+    await allure.label('stability', 'flaky-demo');
+  }
 }
 
 Given(
@@ -100,9 +163,24 @@ When(
   /the (transfers|beneficiaries|cards|statements) validation engine evaluates the request/,
   async ({}) => {
     await allure.step('Evaluate validation rule', async () => {
-      if (FAILED_CASES.has(caseNumber)) {
-        actualValue = getFailureMessage(caseNumber);
+      if (!FAILED_CASES.has(caseNumber)) {
+        actualValue = expectedValue;
+        return;
       }
+
+      if (FLAKY_CASES.has(caseNumber)) {
+        await allure.step('Apply demo flaky behavior', async () => {
+          if (shouldFailFlakyCase()) {
+            actualValue = getFailureMessage(caseNumber);
+          } else {
+            actualValue = expectedValue;
+          }
+        });
+
+        return;
+      }
+
+      actualValue = getFailureMessage(caseNumber);
     });
   }
 );

@@ -33,6 +33,8 @@ variables:
   RELEASE: "$[[ inputs.release ]]"
   BROWSER: "$[[ inputs.browser ]]"
   OS: "$[[ inputs.os ]]"
+  DEMO_FLAKY_MODE: "on"
+  DEMO_FLAKY_RATE: "0.5"
 
 cache:
   paths:
