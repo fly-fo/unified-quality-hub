@@ -1,23 +1,3 @@
-spec:
-  inputs:
-    release:
-      type: string
-      default: "33.3.1"
-      description: "Release"
-    browser:
-      type: string
-      default: "Chrome"
-      description: "Browser"
-    os:
-      type: string
-      default: "macOS"
-      description: "OS"
-    test_scope:
-      type: string
-      default: "all"
-      description: "Test scope: all, unit, api, e2e"
-
----
 stages:
   - test
 
@@ -28,11 +8,12 @@ variables:
   ALLURE_ENDPOINT: "https://demo.testops.cloud"
   ALLURE_PROJECT_ID: "4601"
   ALLURE_RESULTS: "allure-results"
-  ALLURE_LAUNCH_NAME: "Unified Quality Hub - GitLab - $[[ inputs.test_scope ]] - #${CI_PIPELINE_ID}"
-  ALLURE_LAUNCH_TAGS: "gitlab, playwright-bdd, $[[ inputs.test_scope ]]"
-  RELEASE: "$[[ inputs.release ]]"
-  BROWSER: "$[[ inputs.browser ]]"
-  OS: "$[[ inputs.os ]]"
+  ALLURE_LAUNCH_NAME: "Unified Quality Hub - GitLab - #${CI_PIPELINE_ID}"
+  ALLURE_LAUNCH_TAGS: "gitlab, playwright-bdd"
+  RELEASE: "33.3.1"
+  BROWSER: "Chrome"
+  OS: "macOS"
+  TEST_SCOPE: "all"
 
 cache:
   paths:
@@ -45,11 +26,11 @@ test_all:
     - curl -Lo allurectl https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64
     - chmod +x allurectl
     - |
-      if [ "$[[ inputs.test_scope ]]" = "unit" ]; then
+      if [ "$TEST_SCOPE" = "unit" ]; then
         ./allurectl watch -- npm run test:unit
-      elif [ "$[[ inputs.test_scope ]]" = "api" ]; then
+      elif [ "$TEST_SCOPE" = "api" ]; then
         ./allurectl watch -- npm run test:api
-      elif [ "$[[ inputs.test_scope ]]" = "e2e" ]; then
+      elif [ "$TEST_SCOPE" = "e2e" ]; then
         ./allurectl watch -- npm run test:e2e
       else
         ./allurectl watch -- npm run test
