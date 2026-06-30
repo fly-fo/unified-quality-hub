@@ -37,9 +37,6 @@ variables:
   DEMO_FLAKY_RATE: "0.5"
 
 cache:
-  key:
-    files:
-      - package-lock.json
   paths:
     - node_modules/
 
@@ -47,7 +44,7 @@ test_all:
   stage: test
 
   script:
-    - npm ci
+    - npm install --no-audit --no-fund
     - curl -Lo allurectl https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64
     - chmod +x allurectl
     - rm -rf allure-results playwright-report test-results
