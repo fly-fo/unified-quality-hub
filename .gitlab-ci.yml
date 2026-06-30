@@ -42,20 +42,42 @@ cache:
 
 test_all:
   stage: test
+
   script:
     - npm install
+    - npm install -D allure-playwright
     - curl -Lo allurectl https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64
     - chmod +x allurectl
+
+    - echo "Clean old results"
+    - rm -rf allure-results playwright-report test-results
+    - mkdir -p allure-results
+
+    - echo "Generate BDD tests"
+    - npx bddgen
+
+    - echo "Run Playwright and generate Allure results"
     - |
       if [ "$[[ inputs.test_scope ]]" = "unit" ]; then
-        ./allurectl watch -- npm run test:unit
+        ./allurectl watch --results allure-results -- npx playwright test --config=playwright.config.ts features/unit
       elif [ "$[[ inputs.test_scope ]]" = "api" ]; then
-        ./allurectl watch -- npm run test:api
+        ./allurectl watch --results allure-results -- npx playwright test --config=playwright.config.ts features/api
       elif [ "$[[ inputs.test_scope ]]" = "e2e" ]; then
-        ./allurectl watch -- npm run test:e2e
+        ./allurectl watch --results allure-results -- npx playwright test --config=playwright.config.ts features/e2e
       else
-        ./allurectl watch -- npm run test
+        ./allurectl watch --results allure-results -- npx playwright test --config=playwright.config.ts
       fi
+
+    - echo "Check Allure result files"
+    - ls -la allure-results || true
+    - find allure-results -type f | head -50 || true
+
+  after_script:
+    - mkdir -p allure-results playwright-report test-results
+    - touch allure-results/.keep
+    - touch playwright-report/.keep
+    - touch test-results/.keep
+
   artifacts:
     when: always
     paths:
