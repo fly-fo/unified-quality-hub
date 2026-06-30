@@ -9,28 +9,6 @@ const FAILED_CASES = new Set([
   71, 76, 79, 82, 88, 94, 99
 ]);
 
-/**
- * E2E flaky demo cases.
- *
- * We make 5 E2E tests flaky:
- * one case from each failure category.
- *
- * AUTH_TOKEN_EXPIRED       → 036
- * PAYMENT_GATEWAY_502      → 022
- * ORDER_SCHEMA_MISMATCH    → 031
- * UI_CART_BUTTON_HIDDEN    → 044
- * PROFILE_SYNC_TIMEOUT     → 040
- *
- * API:  5 flaky tests
- * E2E:  5 flaky tests
- * Unit: 5 flaky tests
- *
- * Total across the project: 15 flaky tests.
- */
-const FLAKY_CASES = new Set([
-  36, 22, 31, 44, 40
-]);
-
 type ServiceKey = 'transfers' | 'beneficiaries' | 'cards' | 'statements';
 
 let caseNumber = 0;
@@ -85,42 +63,6 @@ function getFailureMessage(num: number): string {
   return 'PROFILE_SYNC_TIMEOUT';
 }
 
-function isFlakyModeEnabled(): boolean {
-  return process.env.DEMO_FLAKY_MODE !== 'off';
-}
-
-function getFlakyFailureRate(): number {
-  const value = process.env.DEMO_FLAKY_RATE;
-
-  if (!value) {
-    return 0.5;
-  }
-
-  const parsedValue = Number(value);
-
-  if (Number.isNaN(parsedValue)) {
-    return 0.5;
-  }
-
-  if (parsedValue < 0) {
-    return 0;
-  }
-
-  if (parsedValue > 1) {
-    return 1;
-  }
-
-  return parsedValue;
-}
-
-function shouldFailFlakyCase(): boolean {
-  if (!isFlakyModeEnabled()) {
-    return false;
-  }
-
-  return Math.random() < getFlakyFailureRate();
-}
-
 async function applyMetadata() {
   await allure.displayName(`Validate ${service} portal case ${pad(caseNumber)}`);
   await allure.epic('Retail Banking');
@@ -135,11 +77,6 @@ async function applyMetadata() {
   await allure.label('Service Level 2', getServiceLevel2(service));
   await allure.label('Application Unit', getApplicationUnit(service));
   await allure.label('Release', process.env.RELEASE || '33.3.1');
-
-  if (FLAKY_CASES.has(caseNumber)) {
-    await allure.tag('flaky-demo');
-    await allure.label('stability', 'flaky-demo');
-  }
 }
 
 Given(
@@ -157,24 +94,9 @@ When(
   /the (transfers|beneficiaries|cards|statements) portal journey is executed/,
   async ({}) => {
     await allure.step('Execute portal journey', async () => {
-      if (!FAILED_CASES.has(caseNumber)) {
-        actualValue = expectedValue;
-        return;
+      if (FAILED_CASES.has(caseNumber)) {
+        actualValue = getFailureMessage(caseNumber);
       }
-
-      if (FLAKY_CASES.has(caseNumber)) {
-        await allure.step('Apply demo flaky behavior', async () => {
-          if (shouldFailFlakyCase()) {
-            actualValue = getFailureMessage(caseNumber);
-          } else {
-            actualValue = expectedValue;
-          }
-        });
-
-        return;
-      }
-
-      actualValue = getFailureMessage(caseNumber);
     });
   }
 );
