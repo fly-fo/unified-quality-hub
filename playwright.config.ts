@@ -18,8 +18,10 @@ export default defineConfig({
   workers: 1,
   reporter: [
     ['line'],
-    ['allure-playwright', { outputFolder: 'allure-results' }]
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['allure-playwright', { resultsDir: 'allure-results' }]
   ],
+  outputDir: 'test-results',
   use: {
     headless: true
   }
