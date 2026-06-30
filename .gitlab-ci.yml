@@ -37,6 +37,9 @@ variables:
   DEMO_FLAKY_RATE: "0.5"
 
 cache:
+  key:
+    files:
+      - package-lock.json
   paths:
     - node_modules/
 
@@ -44,31 +47,23 @@ test_all:
   stage: test
 
   script:
-    - npm install
-    - npm install -D allure-playwright
+    - npm ci
     - curl -Lo allurectl https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64
     - chmod +x allurectl
-
-    - echo "Clean old results"
     - rm -rf allure-results playwright-report test-results
-    - mkdir -p allure-results
 
-    - echo "Generate BDD tests"
-    - npx bddgen
-
-    - echo "Run Playwright and generate Allure results"
     - |
       if [ "$[[ inputs.test_scope ]]" = "unit" ]; then
-        ./allurectl watch --results allure-results -- npx playwright test --config=playwright.config.ts features/unit
+        ./allurectl watch --results allure-results -- npm run test:unit
       elif [ "$[[ inputs.test_scope ]]" = "api" ]; then
-        ./allurectl watch --results allure-results -- npx playwright test --config=playwright.config.ts features/api
+        ./allurectl watch --results allure-results -- npm run test:api
       elif [ "$[[ inputs.test_scope ]]" = "e2e" ]; then
-        ./allurectl watch --results allure-results -- npx playwright test --config=playwright.config.ts features/e2e
+        ./allurectl watch --results allure-results -- npm run test:e2e
       else
-        ./allurectl watch --results allure-results -- npx playwright test --config=playwright.config.ts
+        ./allurectl watch --results allure-results -- npm run test
       fi
 
-    - echo "Check Allure result files"
+    - echo "Allure result files:"
     - ls -la allure-results || true
     - find allure-results -type f | head -50 || true
 

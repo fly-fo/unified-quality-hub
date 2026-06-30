@@ -11,12 +11,12 @@
     "test:e2e": "npm run bddgen && playwright test --grep @e2e"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.1",
-    "@types/node": "^24.3.0",
-    "allure-js-commons": "^3.3.3",
-    "allure-playwright": "^3.2.1",
-    "playwright": "^1.54.1",
-    "playwright-bdd": "^8.4.1",
-    "typescript": "^5.9.2"
+    "@playwright/test": "1.54.1",
+    "@types/node": "24.3.0",
+    "allure-js-commons": "3.3.3",
+    "allure-playwright": "3.2.1",
+    "playwright": "1.54.1",
+    "playwright-bdd": "8.4.1",
+    "typescript": "5.9.2"
   }
 }
