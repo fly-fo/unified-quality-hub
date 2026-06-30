@@ -16,13 +16,19 @@ export default defineConfig({
   testDir,
   timeout: 30000,
   workers: 1,
+
   reporter: [
     ['line'],
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['allure-playwright', { resultsDir: 'allure-results' }]
   ],
+
   outputDir: 'test-results',
+
   use: {
-    headless: true
+    headless: true,
+    trace: 'on',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure'
   }
 });
