@@ -1,1 +1,129 @@
+version: 2.1
 
+parameters:
+  release:
+    type: string
+    default: "33.3.1"
+
+  browser:
+    type: enum
+    enum:
+      - "Chrome"
+      - "Firefox"
+      - "Safari"
+    default: "Chrome"
+
+  os:
+    type: enum
+    enum:
+      - "macOS"
+      - "Windows"
+      - "Linux"
+    default: "macOS"
+
+  test_scope:
+    type: enum
+    enum:
+      - "all"
+      - "unit"
+      - "api"
+      - "e2e"
+    default: "all"
+
+jobs:
+  run-tests:
+    docker:
+      - image: mcr.microsoft.com/playwright:v1.54.1-noble
+
+    working_directory: ~/repo
+
+    environment:
+      ALLURE_ENDPOINT: "https://demo.testops.cloud"
+      ALLURE_PROJECT_ID: "4601"
+      ALLURE_RESULTS: "allure-results"
+
+      RELEASE: "<< pipeline.parameters.release >>"
+      BROWSER: "<< pipeline.parameters.browser >>"
+      OS: "<< pipeline.parameters.os >>"
+
+      DEMO_FLAKY_MODE: "on"
+      DEMO_FLAKY_RATE: "0.5"
+
+    steps:
+      - checkout
+
+      - run:
+          name: Install dependencies
+          command: |
+            npm install --no-audit --no-fund
+
+      - run:
+          name: Install allurectl
+          command: |
+            curl -Lo allurectl \
+              https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64
+            chmod +x allurectl
+
+      - run:
+          name: Clean previous test results
+          command: |
+            rm -rf allure-results playwright-report test-results
+
+      - run:
+          name: Run selected tests
+          environment:
+            ALLURE_LAUNCH_NAME: "Unified Quality Hub - CircleCI - << pipeline.parameters.test_scope >> - #${CIRCLE_BUILD_NUM}"
+            ALLURE_LAUNCH_TAGS: "circleci,playwright-bdd,<< pipeline.parameters.test_scope >>"
+          command: |
+            case "<< pipeline.parameters.test_scope >>" in
+              unit)
+                ./allurectl watch --results allure-results -- npm run test:unit
+                ;;
+              api)
+                ./allurectl watch --results allure-results -- npm run test:api
+                ;;
+              e2e)
+                ./allurectl watch --results allure-results -- npm run test:e2e
+                ;;
+              all)
+                ./allurectl watch --results allure-results -- npm run test
+                ;;
+              *)
+                echo "Unsupported test scope"
+                exit 1
+                ;;
+            esac
+
+      - run:
+          name: Prepare artifact directories
+          when: always
+          command: |
+            mkdir -p allure-results playwright-report test-results
+            touch allure-results/.keep
+            touch playwright-report/.keep
+            touch test-results/.keep
+
+      - run:
+          name: Show Allure result files
+          when: always
+          command: |
+            echo "Allure result files:"
+            ls -la allure-results || true
+            find allure-results -type f | head -50 || true
+
+      - store_artifacts:
+          path: allure-results
+          destination: allure-results
+
+      - store_artifacts:
+          path: playwright-report
+          destination: playwright-report
+
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+
+workflows:
+  run:
+    jobs:
+      - run-tests
