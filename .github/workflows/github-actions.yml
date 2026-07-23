@@ -3,6 +3,18 @@ name: Unified Quality Hub - GitHub Actions
 on:
   workflow_dispatch:
     inputs:
+      ALLURE_JOB_RUN_ID:
+        description: "Allure TestOps service parameter. Leave blank."
+        required: false
+        type: string
+        default: ""
+
+      ALLURE_USERNAME:
+        description: "Allure TestOps service parameter. Leave blank."
+        required: false
+        type: string
+        default: ""
+
       release:
         description: "Release"
         required: true
@@ -50,10 +62,10 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.54.1-noble
 
     env:
-      ALLURE_ENDPOINT: "https://demo.testops.cloud"
-      ALLURE_PROJECT_ID: "4601"
       ALLURE_RESULTS: "allure-results"
-      ALLURE_TOKEN: "${{ secrets.ALLURE_TOKEN }}"
+
+      ALLURE_JOB_RUN_ID: "${{ github.event.inputs.ALLURE_JOB_RUN_ID }}"
+      ALLURE_USERNAME: "${{ github.event.inputs.ALLURE_USERNAME }}"
 
       ALLURE_LAUNCH_NAME: "Unified Quality Hub - GitHub Actions - ${{ inputs.test_scope }} - #${{ github.run_number }}"
       ALLURE_LAUNCH_TAGS: "github-actions,playwright-bdd,${{ inputs.test_scope }}"
@@ -72,11 +84,12 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Install allurectl
-        run: |
-          curl -Lo allurectl \
-            https://github.com/allure-framework/allurectl/releases/latest/download/allurectl_linux_amd64
-          chmod +x allurectl
+      - name: Install and configure allurectl
+        uses: allure-framework/setup-allurectl@v1
+        with:
+          allure-endpoint: "https://demo.testops.cloud"
+          allure-project-id: "4601"
+          allure-token: "${{ secrets.ALLURE_TOKEN }}"
 
       - name: Clean previous test results
         run: |
@@ -87,16 +100,16 @@ jobs:
         run: |
           case "${{ inputs.test_scope }}" in
             unit)
-              ./allurectl watch --results allure-results -- npm run test:unit
+              allurectl watch --results allure-results -- npm run test:unit
               ;;
             api)
-              ./allurectl watch --results allure-results -- npm run test:api
+              allurectl watch --results allure-results -- npm run test:api
               ;;
             e2e)
-              ./allurectl watch --results allure-results -- npm run test:e2e
+              allurectl watch --results allure-results -- npm run test:e2e
               ;;
             all)
-              ./allurectl watch --results allure-results -- npm run test
+              allurectl watch --results allure-results -- npm run test
               ;;
             *)
               echo "Unsupported test scope: ${{ inputs.test_scope }}"
