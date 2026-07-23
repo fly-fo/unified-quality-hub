@@ -6,14 +6,10 @@ on:
       ALLURE_JOB_RUN_ID:
         description: "Allure TestOps service parameter. Leave blank."
         required: false
-        type: string
-        default: ""
 
       ALLURE_USERNAME:
         description: "Allure TestOps service parameter. Leave blank."
         required: false
-        type: string
-        default: ""
 
       release:
         description: "Release"
@@ -52,9 +48,25 @@ on:
           - e2e
         default: all
 
+env:
+  ALLURE_RESULTS: "allure-results"
+
+  # Required for workflows started from Allure TestOps
+  ALLURE_JOB_RUN_ID: ${{ github.event.inputs.ALLURE_JOB_RUN_ID }}
+  ALLURE_USERNAME: ${{ github.event.inputs.ALLURE_USERNAME }}
+
+  # Custom workflow parameters
+  RELEASE: ${{ github.event.inputs.release }}
+  BROWSER: ${{ github.event.inputs.browser }}
+  OS: ${{ github.event.inputs.os }}
+  TEST_SCOPE: ${{ github.event.inputs.test_scope }}
+
+  DEMO_FLAKY_MODE: "on"
+  DEMO_FLAKY_RATE: "0.5"
+
 jobs:
   run-tests:
-    name: Run ${{ inputs.test_scope }} tests
+    name: Run ${{ github.event.inputs.test_scope }} tests
 
     runs-on: ubuntu-latest
 
@@ -62,63 +74,74 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.54.1-noble
 
     env:
-      ALLURE_RESULTS: "allure-results"
+      ALLURE_LAUNCH_NAME: >-
+        Unified Quality Hub - GitHub Actions -
+        ${{ github.event.inputs.test_scope }} -
+        #${{ github.run_number }}
 
-      ALLURE_JOB_RUN_ID: "${{ github.event.inputs.ALLURE_JOB_RUN_ID }}"
-      ALLURE_USERNAME: "${{ github.event.inputs.ALLURE_USERNAME }}"
-
-      ALLURE_LAUNCH_NAME: "Unified Quality Hub - GitHub Actions - ${{ inputs.test_scope }} - #${{ github.run_number }}"
-      ALLURE_LAUNCH_TAGS: "github-actions,playwright-bdd,${{ inputs.test_scope }}"
-
-      RELEASE: "${{ inputs.release }}"
-      BROWSER: "${{ inputs.browser }}"
-      OS: "${{ inputs.os }}"
-
-      DEMO_FLAKY_MODE: "on"
-      DEMO_FLAKY_RATE: "0.5"
+      ALLURE_LAUNCH_TAGS: >-
+        github-actions,playwright-bdd,
+        ${{ github.event.inputs.test_scope }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
       - name: Install and configure allurectl
         uses: allure-framework/setup-allurectl@v1
         with:
           allure-endpoint: "https://demo.testops.cloud"
+          allure-token: ${{ secrets.ALLURE_TOKEN }}
           allure-project-id: "4601"
-          allure-token: "${{ secrets.ALLURE_TOKEN }}"
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
 
       - name: Clean previous test results
         run: |
           rm -rf allure-results playwright-report test-results
+          mkdir -p allure-results
+
+      - name: Show trigger information
+        shell: bash
+        run: |
+          if [ -n "${ALLURE_JOB_RUN_ID}" ]; then
+            echo "Workflow was triggered from Allure TestOps."
+            echo "Allure Job Run ID was received."
+          else
+            echo "Workflow was started manually from GitHub."
+          fi
+
+          echo "Test scope: ${TEST_SCOPE}"
+          echo "Release: ${RELEASE}"
+          echo "Browser: ${BROWSER}"
+          echo "OS: ${OS}"
 
       - name: Run selected tests
         shell: bash
         run: |
-          case "${{ inputs.test_scope }}" in
+          case "${TEST_SCOPE}" in
             unit)
-              allurectl watch --results allure-results -- npm run test:unit
+              allurectl watch -- npm run test:unit
               ;;
             api)
-              allurectl watch --results allure-results -- npm run test:api
+              allurectl watch -- npm run test:api
               ;;
             e2e)
-              allurectl watch --results allure-results -- npm run test:e2e
+              allurectl watch -- npm run test:e2e
               ;;
             all)
-              allurectl watch --results allure-results -- npm run test
+              allurectl watch -- npm run test
               ;;
             *)
-              echo "Unsupported test scope: ${{ inputs.test_scope }}"
+              echo "Unsupported test scope: ${TEST_SCOPE}"
               exit 1
               ;;
           esac
 
       - name: Show Allure result files
         if: always()
+        shell: bash
         run: |
           echo "Allure result files:"
           ls -la allure-results || true
@@ -126,6 +149,7 @@ jobs:
 
       - name: Prepare artifact directories
         if: always()
+        shell: bash
         run: |
           mkdir -p allure-results playwright-report test-results
           touch allure-results/.keep
@@ -136,7 +160,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-artifacts-${{ inputs.test_scope }}-${{ github.run_number }}
+          name: test-artifacts-${{ github.event.inputs.test_scope }}-${{ github.run_number }}
           path: |
             allure-results/
             playwright-report/
